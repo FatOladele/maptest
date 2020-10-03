@@ -11,7 +11,7 @@ def samelocation(previous, current):
     return False
 def mapfunction(data):
   response = []
-  data = data.data
+  data = data['data']
   previousRow = ''
   curpath = []
   curtype = ''
@@ -19,34 +19,42 @@ def mapfunction(data):
   endtime = ''
   startvol = 0
   endvolume = 0
+  volumeadded = 0
+  volumeused = 0
   for row in data:
     if previousRow != '':
-      print(str(samelocation(previousRow, row)) + curtype)
       if (samelocation(previousRow, row) and (curtype == 'stop' or curtype == '')):
         curtype = 'stop'
       elif (samelocation(previousRow, row) and curtype == 'moving'):
         curpath.append({'lat': float(row['latitude']), 'lng': float(row['longitude'])})
-        response.append({'type': curtype, 'path': curpath, 'starttime': starttime, 'endtime': endtime, 'voa': startvol, 'vol': endvolume})
-        startvol = row['volume_left']
+        response.append({'type': curtype, 'path': curpath, 'starttime': starttime, 'endtime': endtime, 'voa': startvol, 'vol': endvolume, 'va': volumeadded, 'vu': volumeused})
+        startvol = float(previousRow['volume_left'])
+        volumeadded = 0
+        volumeused = 0
         curpath = [{'lat': float(row['latitude']), 'lng': float(row['longitude'])}]
         starttime = gettime(row['created_at'])
         curtype = 'stop'
       elif ((not(samelocation(previousRow, row))) and (curtype == 'moving' or curtype == '')):
+        curtype = 'moving'
         curpath.append({'lat': float(row['latitude']), 'lng': float(row['longitude'])})
       elif ((not(samelocation(previousRow, row))) and curtype == 'stop'):
         curpath.append({'lat': float(row['latitude']), 'lng': float(row['longitude'])})
-        response.append({'type': curtype, 'path': curpath, 'starttime': starttime, 'endtime': endtime, 'voa': startvol, 'vol': endvolume})
-        startvol = row['volume_left']
+        response.append({'type': curtype, 'path': curpath, 'starttime': starttime, 'endtime': endtime, 'voa': startvol, 'vol': endvolume, 'va': volumeadded, 'vu': volumeused})
+        startvol = float(row['volume_left'])
+        volumeadded = 0
+        volumeused = 0
         curpath = [{'lat': float(row['latitude']), 'lng': float(row['longitude'])}]
         starttime = gettime(row['created_at'])
         curtype = 'moving'
     else:
       starttime = gettime(row['created_at'])
-      startvol = row['volume_left']
+      startvol = float(row['volume_left'])
       curpath.append({'lat': float(row['latitude']), 'lng': float(row['longitude'])})
-    endvolume = row['volume_left']
+    volumeadded += float(row['volume_added'])
+    volumeused += float(row['volume_used'])
+    endvolume = float(row['volume_left'])
     endtime = gettime(row['created_at'])
     previousRow = row
   curpath.append({'lat': float(row['latitude']), 'lng': float(row['longitude'])})
-  response.append({'type': curtype, 'path': curpath, 'starttime': starttime, 'endtime': endtime, 'voa': startvol, 'vol': endvolume})
+  response.append({'type': curtype, 'path': curpath, 'starttime': starttime, 'endtime': endtime, 'voa': startvol, 'vol': endvolume, 'va': volumeadded, 'vu': volumeused})
   return response
